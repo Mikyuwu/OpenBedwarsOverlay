@@ -1,24 +1,39 @@
 from time import *
-import re
-import requests
 from pynput.keyboard import Key, Controller
+from os import system, name
+from pathlib import Path
+
+import glob
+import re 
+import requests
+import os.path
 import json
 
 keyboard = Controller()
+build = "2418"
 
-log = open("C:/MultiMC/instances/1.8.9/.minecraft/logs/latest.log", "r")
+#   ______ _          _      _____      _               
+#  |  ____(_)        | |    / ____|    | |              
+#  | |__   _ _ __ ___| |_  | (___   ___| |_ _   _ _ __  
+#  |  __| | | '__/ __| __|  \___ \ / _ \ __| | | | '_ \ 
+#  | |    | | |  \__ \ |_   ____) |  __/ |_| |_| | |_) |
+#  |_|    |_|_|  |___/\__| |_____/ \___|\__|\__,_| .__/ 
+#                                                | |    
+#                                                |_|    
+
 
 uuid = ""
 
-
-players = ['eviljustsnake', 'undertakerq', 'INDEKFIR858', 'Raphael825', 'MRblue_candy', 'buskapasi', 'OreoKing3', 'DBLSnowMan', 'NothingsRound', 'Bot0011', 'Teda_XD', 'ewifeymaterial', 'Mikyu__', 'ymmulc', 'Epic_Enigma', 'zHadez_']
 uuidlist = []
 variables = {}
 winstreak = []
-key = "fc4edf76-f1af-4889-b5c0-951ab391c8ab"
+apikey = ""
+
+logpath = open("", "r")
 
 autowhosetting = 1
-username = "Mikyu__"
+username = ""
+
 
 #   _____      _   _                  
 #  |  __ \    | | | |                 
@@ -32,6 +47,12 @@ pattern = re.compile("\[Client thread/INFO\]: \[CHAT\] (.*) has joined")
 pattern2 = re.compile("\[Client thread/INFO\]: \[CHAT\] (.*) has quit")
 ingame = re.compile(f"\[Client thread/INFO\]: \[CHAT\] Sending you to (.*)")
 who = re.compile("\[Client thread/INFO\]: \[CHAT\] ONLINE: (.*)")
+
+def clear():
+    if name == 'nt':
+        _ = system('cls')
+    else:
+        _ = system('clear')
 
 def get_lines(f):
     f.seek(0,2)
@@ -48,22 +69,44 @@ def autowho():
     keyboard.press(Key.enter)
     keyboard.release(Key.enter)
 
+def stats(player):
+    try:
+        uuid = requests.get(f'https://api.mojang.com/users/profiles/minecraft/{player}').json()["id"]
+        api = requests.get(f"https://api.hypixel.net/v2/player?uuid={uuid}&key={apikey}").json()["player"]
+
+    except:
+        if uuid == '': # problem here
+            nick = "yes"
+            variables[player] = [player, "?", "0", "0", nick]
+    else:
+        level = api["achievements"]["bedwars_level"]
+        try:
+            winstreak = api["stats"]["Bedwars"]["eight_one_winstreak"]
+        except:
+            winstreak = "?"
+        wins = api["achievements"]["bedwars_wins"]
+        variables[player] = [player, level, winstreak, wins]
+    print(variables[player])
+
 def playerdetector():
-    for line in get_lines(log):
+    players = []
+    for line in get_lines(logpath):
         if match := ingame.search(line):
             players.clear()
+            clear()
             print("Player in game")
-            sleep(2)
+            sleep(1)
             if autowhosetting == 1:
                 autowho()
 
         elif match := who.search(line):
             players = re.split(', ', match.group(1))
-            print(players)
+            for player in players:
+                stats(player)
 
         elif match := pattern.search(line):
             players.append(match.group(1))
-            print(players)
+            stats(match.group(1))
 
         elif match := pattern2.search(line):
             try:
@@ -72,22 +115,4 @@ def playerdetector():
             except:
                 print(f"{match.group(1)} not in player list, no /who?")
 
-def stats():
-    for player in players:    
-        try:
-            uuid = requests.get(f'https://api.mojang.com/users/profiles/minecraft/{player}').json()["id"]
-            api = requests.get(f"https://api.hypixel.net/v2/player?uuid={uuid}&key={key}").json()["player"]
-
-        except:
-            if uuid == '': 
-                nick = "yes"
-                variables[player] = [player, "?", "0", "0", nick]
-        else:
-            level = api["achievements"]["bedwars_level"]
-            try:
-                winstreak = api["stats"]["Bedwars"]["eight_one_winstreak"]
-            except:
-                winstreak = "?"
-            wins = api["achievements"]["bedwars_wins"]
-            variables[player] = [player, level, winstreak, wins]
-        print(variables[player])
+playerdetector()
